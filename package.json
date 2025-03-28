@@ -1,0 +1,19 @@
+{
+  "name": "image-optimizer-cli",
+  "version": "1.0.0",
+  "description": "Optimiza imágenes desde la línea de comandos",
+  "main": "optimize-images.js",
+  "bin": {
+    "imgoptim": "optimize-images.js"
+  },
+  "scripts": {
+    "start": "node optimize-images.js"
+  },
+  "dependencies": {
+    "sharp": "^0.33.2",
+    "commander": "^12.0.0"
+  },
+  "keywords": ["image", "optimizer", "cli"],
+  "author": "Javi Mata",
+  "license": "MIT"
+}
