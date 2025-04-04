@@ -41,7 +41,7 @@ Image Optimizer CLI is a command-line tool to optimize images in your file syste
 Once installed, you can use the `imgoptim` command from any directory in your terminal.
 
 ```bash
-imgoptim --format <format> --quality <quality> --width <width> --height <height> --aspect <aspect> --folder <folder>
+imgoptim --format <format> --quality <quality> --width <width> --height <height> --aspect <aspect> --folder <folder> --preserve-format
 ```
 
 ## Options
