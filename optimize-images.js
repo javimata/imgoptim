@@ -62,7 +62,15 @@ async function findImages(dir, baseDir) {
  * Función principal que realiza la optimización de imágenes.
  */
 async function optimizeImages(options) {
-  const { format, quality, width, height, aspect, folder } = options;
+  const {
+    format,
+    quality: qualityRaw,
+    width,
+    height,
+    aspect,
+    folder,
+  } = options;
+  const quality = parseInt(qualityRaw, 10);
   const useOriginalFormat = format === DEFAULT_FORMAT && options.preserveFormat;
 
   try {
@@ -141,7 +149,15 @@ async function optimizeImages(options) {
             sharpInstance = sharpInstance.jpeg({ quality });
             break;
           case "png":
-            sharpInstance = sharpInstance.png({ quality });
+            const compressionLevel = Math.max(
+              0,
+              Math.min(9, Math.floor((100 - quality) / 11))
+            );
+            sharpInstance = sharpInstance.png({
+              compressionLevel: 9, // Máxima compresión (0-9)
+              adaptiveFiltering: true, // Mejor para fotografías
+              palette: true, // Usar paleta de colores cuando sea posible
+            });
             break;
           case "webp":
             sharpInstance = sharpInstance.webp({ quality });
@@ -181,19 +197,19 @@ program
   .option(
     "-q, --quality <quality>",
     `Calidad de la imagen (1-100) (default: ${DEFAULT_QUALITY})`,
-    parseInt,
+    (value) => parseInt(value, 10),
     DEFAULT_QUALITY
   )
   .option(
     "-w, --width <width>",
     "Ancho de la imagen de salida (default: ancho original)",
-    parseInt,
+    (value) => parseInt(value, 10),
     DEFAULT_WIDTH
   )
   .option(
     "-h, --height <height>",
     "Alto de la imagen de salida (default: alto original)",
-    parseInt,
+    (value) => parseInt(value, 10),
     DEFAULT_HEIGHT
   )
   .option(
