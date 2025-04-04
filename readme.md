@@ -63,10 +63,11 @@ false: Do not maintain the aspect ratio; stretch the image.
 
 -o, --folder <folder>: Output folder for the optimized images. Default: optimized_images.
 
+--preserve-format: Mantiene el formato original de cada imagen cuando no se especifica otro formato.
 
 ## Examples
 Optimize all images in the current directory to webp format, with 70 quality, a width of 1000px, and save them in the "optimized" folder:
 
 ```bash
-imgoptim --format webp --quality 70 --width 1000 --folder optimized
+imgoptim --format webp --quality 70 --width 1000 --folder optimized --preserve-format
 ``` 
