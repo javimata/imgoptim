@@ -18,28 +18,18 @@ Image Optimizer CLI is a command-line tool to optimize images in your file syste
 * Real-time progress display with a fixed message showing the current image being processed.
 * Option to display or hide the results table using the `--show-table` flag.
 
-## Installation
+## Instalación
 
-1.  **Clone the repository:**
+1. **Instalar desde npm:**
 
     ```bash
-    git clone git@github.com:javimata/imgoptim.git
+    npm install -g imgoptim-cli
     ```
 
-2.  **Navigate to the project directory:**
+2. **Verificar la instalación:**
 
     ```bash
-    cd imgoptim
-    ```
-3.  **Install dependencies:**
-
-    ```bash
-    npm install
-    ```
-4.  **Install the tool globally:**
-
-    ```bash
-    npm install -g .
+    imgoptim --help
     ```
 
 ## Usage

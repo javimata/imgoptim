@@ -1,6 +1,6 @@
 {
   "name": "imgoptim-cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Optimiza imágenes desde la línea de comandos",
   "main": "optimize-images.js",
   "type": "module",
