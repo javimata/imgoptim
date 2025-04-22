@@ -7,11 +7,13 @@
  * utilizando `sharp` para la manipulación de imágenes.
  */
 
-const sharp = require("sharp");
-const fs = require("fs");
-const path = require("path");
-const { Command } = require("commander");
-const program = new Command();
+import sharp from "sharp";
+import fs from "fs";
+import path from "path";
+import { Command } from "commander";
+import Table from "cli-table3";
+import chalk from "chalk";
+import { optimize as optimizeSvg } from "svgo";
 
 // Define los valores predeterminados para las opciones.
 const DEFAULT_FORMAT = "jpg";
@@ -20,7 +22,7 @@ const DEFAULT_WIDTH = null; // Ancho original
 const DEFAULT_HEIGHT = null; // Alto original
 const DEFAULT_ASPECT = "scale"; // 'scale', 'crop', o false
 const DEFAULT_FOLDER = "optimized_images";
-const SUPPORTED_FORMATS = ["jpg", "png", "webp"];
+const SUPPORTED_FORMATS = ["jpg", "png", "webp", "svg"];
 
 /**
  * Función para buscar todas las imágenes en un directorio y sus subdirectorios.
@@ -44,7 +46,7 @@ async function findImages(dir, baseDir) {
     } else {
       // Es un archivo, verifica si es una imagen
       const ext = path.extname(item.name).toLowerCase();
-      if ([".jpg", ".jpeg", ".png", ".webp"].includes(ext)) {
+      if ([".jpg", ".jpeg", ".png", ".webp", ".svg"].includes(ext)) {
         // Calcula la ruta relativa desde el directorio base
         const relativePath = path.relative(baseDir, dir);
         results.push({
@@ -74,25 +76,27 @@ async function optimizeImages(options) {
   const useOriginalFormat = format === DEFAULT_FORMAT && options.preserveFormat;
 
   try {
-    // 1. Verifica si el directorio de salida existe, si no, lo crea.
     if (!fs.existsSync(folder)) {
       fs.mkdirSync(folder, { recursive: true });
     }
 
-    // 2. Buscar todas las imágenes en el directorio actual y subdirectorios
     console.log(
-      "Buscando imágenes en el directorio actual y subdirectorios..."
+      chalk.blue(
+        "Buscando imágenes en el directorio actual y subdirectorios..."
+      )
     );
     const currentDir = process.cwd();
     const imageFiles = await findImages(currentDir, currentDir);
 
     if (imageFiles.length === 0) {
-      console.log("No se encontraron imágenes para optimizar.");
+      console.log(chalk.yellow("No se encontraron imágenes para optimizar."));
       return;
     }
 
     console.log(
-      `Optimizando ${imageFiles.length} imágenes con las siguientes opciones:`
+      chalk.green(
+        `Optimizando ${imageFiles.length} imágenes con las siguientes opciones:`
+      )
     );
     console.log(
       `  Formato: ${useOriginalFormat ? "Original de cada imagen" : format}`
@@ -103,87 +107,180 @@ async function optimizeImages(options) {
     console.log(`  Aspecto: ${aspect}`);
     console.log(`  Carpeta de salida: ${folder}`);
 
-    // 3. Itera sobre cada archivo de imagen y lo optimiza.
-    for (const { file, relativePath } of imageFiles) {
+    console.log(chalk.blue("Iniciando la optimización de imágenes..."));
+
+    let totalOriginalSize = 0;
+    let totalOptimizedSize = 0;
+
+    const table = new Table({
+      head: [
+        chalk.bold("#"),
+        chalk.bold("Imagen Original"),
+        chalk.bold("Tamaño Original"),
+        chalk.bold("Imagen Optimizada"),
+        chalk.bold("Tamaño Optimizado"),
+        chalk.bold("Reducción"),
+        chalk.bold("Estado"),
+      ],
+      colWidths: [5, 30, 20, 30, 20, 15, 10],
+    });
+
+    let optimizedCount = 0;
+
+    process.stdout.write(chalk.blue("Optimizando 0 de " + imageFiles.length + " imágenes...\r"));
+
+    for (const [index, { file, relativePath }] of imageFiles.entries()) {
       try {
-        // Determina el formato original de la imagen
+        const originalSize = fs.statSync(file).size;
+        totalOriginalSize += originalSize;
+
         const originalExt = path.extname(file).toLowerCase().substring(1);
-        // Normaliza jpeg a jpg
         const originalFormat = originalExt === "jpeg" ? "jpg" : originalExt;
 
-        // Define el formato de salida: usa el original si se especificó preserveFormat
-        const outputFormat = useOriginalFormat ? originalFormat : format;
+        if (originalFormat === "svg") {
+          // Procesar archivos SVG
+          const svgContent = fs.readFileSync(file, "utf8");
+          const optimizedSvg = optimizeSvg(svgContent, { multipass: true });
 
-        // Crear la estructura de directorios en la carpeta de salida
-        const outputDir = path.join(folder, relativePath);
-        if (!fs.existsSync(outputDir)) {
-          fs.mkdirSync(outputDir, { recursive: true });
-        }
-
-        const outputFileName = path.parse(file).name + "." + outputFormat;
-        const outputPath = path.join(outputDir, outputFileName);
-
-        let sharpInstance = sharp(file);
-
-        // 4. Redimensiona la imagen según las opciones de ancho, alto y aspect.
-        if (width || height) {
-          let resizeOptions = {
-            width: width,
-            height: height,
-          };
-
-          if (aspect === "scale") {
-            resizeOptions.fit = sharp.fit.inside; // Mantiene aspect ratio, se ajusta al tamaño
-          } else if (aspect === "crop") {
-            resizeOptions.fit = sharp.fit.cover; // Mantiene aspect ratio, recorta si es necesario
-            resizeOptions.position = sharp.strategy.entropy; // Opcional: punto de recorte
-          } else {
-            // aspect === false: No mantiene aspect ratio, estira la imagen
+          const outputDir = path.join(folder, relativePath);
+          if (!fs.existsSync(outputDir)) {
+            fs.mkdirSync(outputDir, { recursive: true });
           }
-          sharpInstance = sharpInstance.resize(resizeOptions);
+
+          const outputFileName = path.parse(file).name + ".svg";
+          const outputPath = path.join(outputDir, outputFileName);
+
+          fs.writeFileSync(outputPath, optimizedSvg.data, "utf8");
+
+          const optimizedSize = fs.statSync(outputPath).size;
+          totalOptimizedSize += optimizedSize;
+
+          const reduction = ((originalSize - optimizedSize) / originalSize) * 100;
+
+          table.push([
+            chalk.yellow(index + 1),
+            chalk.cyan(path.relative(currentDir, file)),
+            chalk.yellow(`${(originalSize / 1024).toFixed(2)} KB`),
+            chalk.green(path.relative(currentDir, outputPath)),
+            chalk.yellow(`${(optimizedSize / 1024).toFixed(2)} KB`),
+            chalk.magenta(`${reduction.toFixed(2)}%`),
+            chalk.green("✅ Éxito"),
+          ]);
+
+          optimizedCount++;
+        } else {
+          const outputFormat = useOriginalFormat ? originalFormat : format;
+
+          const outputDir = path.join(folder, relativePath);
+          if (!fs.existsSync(outputDir)) {
+            fs.mkdirSync(outputDir, { recursive: true });
+          }
+
+          const outputFileName = path.parse(file).name + "." + outputFormat;
+          const outputPath = path.join(outputDir, outputFileName);
+
+          let sharpInstance = sharp(file);
+
+          if (width || height) {
+            let resizeOptions = { width, height };
+            if (aspect === "scale") {
+              resizeOptions.fit = sharp.fit.inside;
+            } else if (aspect === "crop") {
+              resizeOptions.fit = sharp.fit.cover;
+              resizeOptions.position = sharp.strategy.entropy;
+            }
+            sharpInstance = sharpInstance.resize(resizeOptions);
+          }
+
+          switch (outputFormat) {
+            case "jpg":
+              sharpInstance = sharpInstance.jpeg({ quality });
+              break;
+            case "png":
+              const compressionLevel = Math.max(
+                0,
+                Math.min(9, Math.floor((100 - quality) / 11))
+              );
+              sharpInstance = sharpInstance.png({
+                compressionLevel,
+                adaptiveFiltering: true,
+                palette: true,
+              });
+              break;
+            case "webp":
+              sharpInstance = sharpInstance.webp({ quality });
+              break;
+          }
+
+          await sharpInstance.toFile(outputPath);
+
+          const optimizedSize = fs.statSync(outputPath).size;
+          totalOptimizedSize += optimizedSize;
+
+          const reduction = ((originalSize - optimizedSize) / originalSize) * 100;
+
+          table.push([
+            chalk.yellow(index + 1),
+            chalk.cyan(path.relative(currentDir, file)),
+            chalk.yellow(`${(originalSize / 1024).toFixed(2)} KB`),
+            chalk.green(path.relative(currentDir, outputPath)),
+            chalk.yellow(`${(optimizedSize / 1024).toFixed(2)} KB`),
+            chalk.magenta(`${reduction.toFixed(2)}%`),
+            chalk.green("✅ Éxito"),
+          ]);
+
+          optimizedCount++;
         }
-
-        // 5. Convierte la imagen al formato de salida y establece la calidad.
-        switch (outputFormat) {
-          case "jpg":
-            sharpInstance = sharpInstance.jpeg({ quality });
-            break;
-          case "png":
-            const compressionLevel = Math.max(
-              0,
-              Math.min(9, Math.floor((100 - quality) / 11))
-            );
-            sharpInstance = sharpInstance.png({
-              compressionLevel: 9, // Máxima compresión (0-9)
-              adaptiveFiltering: true, // Mejor para fotografías
-              palette: true, // Usar paleta de colores cuando sea posible
-            });
-            break;
-          case "webp":
-            sharpInstance = sharpInstance.webp({ quality });
-            break;
-        }
-
-        // 6. Guarda la imagen optimizada en el directorio de salida.
-        await sharpInstance.toFile(outputPath);
-
-        // Muestra la ruta relativa para mayor claridad
-        const relativeInputPath = path.relative(currentDir, file);
-        const relativeOutputPath = path.relative(currentDir, outputPath);
-        console.log(
-          `Optimizado: ${relativeInputPath} -> ${relativeOutputPath}`
-        );
       } catch (error) {
-        console.error(`Error al procesar la imagen ${file}:`, error.message);
+        table.push([
+          chalk.yellow(index + 1),
+          chalk.cyan(path.relative(currentDir, file)),
+          chalk.yellow("-"),
+          chalk.red("-"),
+          chalk.red("-"),
+          chalk.red("-"),
+          chalk.red("⚠️ Error"),
+        ]);
+        console.error(
+          chalk.red(`Error al procesar la imagen ${file}: ${error.message}`)
+        );
       }
+
+      // Actualizar el texto fijo con el progreso
+      process.stdout.write(
+        chalk.blue(`Optimizando ${index + 1} de ${imageFiles.length} imágenes...\r`)
+      );
     }
-    console.log("¡Todas las imágenes han sido optimizadas!");
+
+    console.log("\n" + table.toString());
+
+    const totalReduction =
+      ((totalOriginalSize - totalOptimizedSize) / totalOriginalSize) * 100;
+    console.log(chalk.green("\nResumen:"));
+    console.log(chalk.green(`  Imágenes optimizadas: ${optimizedCount}`));
+    console.log(
+      chalk.green(
+        `  Tamaño total original: ${(totalOriginalSize / 1024).toFixed(2)} KB`
+      )
+    );
+    console.log(
+      chalk.green(
+        `  Tamaño total optimizado: ${(totalOptimizedSize / 1024).toFixed(
+          2
+        )} KB`
+      )
+    );
+    console.log(
+      chalk.green(`  Reducción total: ${totalReduction.toFixed(2)}%`)
+    );
   } catch (error) {
-    console.error("Error en el proceso de optimización:", error);
+    console.error(chalk.red("Error en el proceso de optimización:"), error);
   }
 }
 
 // Define los comandos y las opciones que se pueden usar en la terminal.
+const program = new Command();
+
 program
   .version("1.0.0")
   .description("Optimiza imágenes en el directorio actual y subdirectorios.")
