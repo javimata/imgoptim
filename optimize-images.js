@@ -77,8 +77,10 @@ async function optimizeImages(options) {
   const useOriginalFormat = format === DEFAULT_FORMAT && options.preserveFormat;
 
   try {
-    if (!fs.existsSync(folder)) {
-      fs.mkdirSync(folder, { recursive: true });
+    const outputFolder = path.isAbsolute(folder) ? folder : path.resolve(process.cwd(), folder);
+
+    if (!fs.existsSync(outputFolder)) {
+      fs.mkdirSync(outputFolder, { recursive: true });
     }
 
     console.log(
@@ -143,7 +145,7 @@ async function optimizeImages(options) {
           const svgContent = fs.readFileSync(file, "utf8");
           const optimizedSvg = optimizeSvg(svgContent, { multipass: true });
 
-          const outputDir = path.join(folder, relativePath);
+          const outputDir = path.join(outputFolder, relativePath);
           if (!fs.existsSync(outputDir)) {
             fs.mkdirSync(outputDir, { recursive: true });
           }
@@ -172,7 +174,7 @@ async function optimizeImages(options) {
         } else {
           const outputFormat = useOriginalFormat ? originalFormat : format;
 
-          const outputDir = path.join(folder, relativePath);
+          const outputDir = path.join(outputFolder, relativePath);
           if (!fs.existsSync(outputDir)) {
             fs.mkdirSync(outputDir, { recursive: true });
           }
