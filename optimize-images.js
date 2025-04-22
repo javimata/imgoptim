@@ -14,6 +14,10 @@ import { Command } from "commander";
 import Table from "cli-table3";
 import chalk from "chalk";
 import { optimize as optimizeSvg } from "svgo";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
+const { version } = require("./package.json");
 
 // Define los valores predeterminados para las opciones.
 const DEFAULT_FORMAT = "jpg";
@@ -287,7 +291,7 @@ async function optimizeImages(options) {
 const program = new Command();
 
 program
-  .version("1.0.0")
+  .version(version)
   .description("Optimiza imágenes en el directorio actual y subdirectorios.")
   .option(
     "-f, --format <format>",
@@ -335,6 +339,11 @@ program
     false
   )
   .action((options) => {
+    // Ajustar el valor de `aspect` para convertir 'false' en un booleano
+    if (options.aspect === 'false') {
+      options.aspect = false;
+    }
+
     // Valida las opciones ingresadas por el usuario.
     if (!SUPPORTED_FORMATS.includes(options.format)) {
       console.error(
