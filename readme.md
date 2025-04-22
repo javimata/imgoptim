@@ -12,6 +12,12 @@ Image Optimizer CLI is a command-line tool to optimize images in your file syste
 * Image resizing with aspect ratio options.
 * Specification of the output folder for optimized images.
 
+## New Features
+
+* Support for SVG optimization using `svgo`.
+* Real-time progress display with a fixed message showing the current image being processed.
+* Option to display or hide the results table using the `--show-table` flag.
+
 ## Installation
 
 1.  **Clone the repository:**
@@ -41,7 +47,7 @@ Image Optimizer CLI is a command-line tool to optimize images in your file syste
 Once installed, you can use the `imgoptim` command from any directory in your terminal.
 
 ```bash
-imgoptim --format <format> --quality <quality> --width <width> --height <height> --aspect <aspect> --folder <folder> --preserve-format
+imgoptim --format <format> --quality <quality> --width <width> --height <height> --aspect <aspect> --folder <folder> --preserve-format --show-table
 ```
 
 ## Options
@@ -65,9 +71,17 @@ false: Do not maintain the aspect ratio; stretch the image.
 
 --preserve-format: Mantiene el formato original de cada imagen cuando no se especifica otro formato.
 
+--show-table: Displays the results table at the end of the process. Default: false.
+
 ## Examples
-Optimize all images in the current directory to webp format, with 70 quality, a width of 1000px, and save them in the "optimized" folder:
+Optimize all images in the current directory to webp format, with 70 quality, a width of 1000px, and save them in the "optimized" folder, while showing the results table:
+
+```bash
+imgoptim --format webp --quality 70 --width 1000 --folder optimized --preserve-format --show-table
+```
+
+Optimize all images in the current directory without displaying the results table:
 
 ```bash
 imgoptim --format webp --quality 70 --width 1000 --folder optimized --preserve-format
-``` 
+```

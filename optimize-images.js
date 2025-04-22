@@ -71,6 +71,7 @@ async function optimizeImages(options) {
     height,
     aspect,
     folder,
+    showTable,
   } = options;
   const quality = parseInt(qualityRaw, 10);
   const useOriginalFormat = format === DEFAULT_FORMAT && options.preserveFormat;
@@ -252,7 +253,9 @@ async function optimizeImages(options) {
       );
     }
 
-    console.log("\n" + table.toString());
+    if (showTable) {
+      console.log("\n" + table.toString());
+    }
 
     const totalReduction =
       ((totalOriginalSize - totalOptimizedSize) / totalOriginalSize) * 100;
@@ -323,6 +326,11 @@ program
     "--preserve-format",
     "Mantiene el formato original de cada imagen cuando no se especifica otro formato",
     true
+  )
+  .option(
+    "--show-table",
+    "Muestra la tabla de resultados al final del proceso",
+    false
   )
   .action((options) => {
     // Valida las opciones ingresadas por el usuario.
