@@ -18,15 +18,15 @@ Image Optimizer CLI is a command-line tool to optimize images in your file syste
 * Real-time progress display with a fixed message showing the current image being processed.
 * Option to display or hide the results table using the `--show-table` flag.
 
-## Instalación
+## Installation
 
-1. **Instalar desde npm:**
+1. **Install from npm:**
 
     ```bash
     npm install -g imgoptim-cli
     ```
 
-2. **Verificar la instalación:**
+2. **Verify the installation:**
 
     ```bash
     imgoptim --help
@@ -59,7 +59,7 @@ false: Do not maintain the aspect ratio; stretch the image.
 
 -o, --folder <folder>: Output folder for the optimized images. Default: optimized_images.
 
---preserve-format: Mantiene el formato original de cada imagen cuando no se especifica otro formato.
+--preserve-format: Keeps the original format of each image when no other format is specified.
 
 --show-table: Displays the results table at the end of the process. Default: false.
 
